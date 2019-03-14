@@ -1,0 +1,146 @@
+---
+title: ''
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r everything}
+
+
+
+
+library(rprime)
+library(lme4)
+library(lmerTest)
+library(EMAtools)
+library(ggplot2)
+library(cowplot)
+library(dplyr)
+library(readxl)
+theme = theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"), 
+              legend.key = element_rect(fill = "white"),
+              text = element_text(size = 15))
+
+#########################################################################################
+big_face = read.csv('face_data.csv')
+aged = read.csv('face_data_age.csv')
+aged$age[aged$age == -999] = NA
+
+big_face2 = big_face[complete.cases(big_face),]
+big_face2 = subset(big_face2, partno != 1170)
+tdata = distinct(big_face2[,c('partno','sub_sex')])
+
+table(tdata$sub_sex)
+
+tdata = merge(tdata, aged, by='partno')
+with(tdata, tapply(age, list(sub_sex),mean,na.rm=T))
+with(tdata, tapply(age, list(sub_sex),sd,na.rm=T))
+
+
+
+summary(big_face2$rt)
+big_face2 = subset(big_face2, rt > 500) # response minimum
+big_face2 = subset(big_face2, rt < 45001) # task length
+
+
+######################## Response Times & accuracy overall
+big_face2$sub_sex = factor(big_face2$sub_sex)
+
+rtzscore = scale(big_face2$rt)
+summary(abs(rtzscore) < 3)
+rt_noout = subset(big_face2, abs(rtzscore) < 3)
+
+mod1 = lmer(rt ~ sub_sex + (1 | partno), data = rt_noout)
+summary(mod1)
+lme.dscore(mod1, data = big_face2, type='lme4')
+
+mod2 = lmer(acc ~ sub_sex + (1 | partno), data = big_face2)
+summary(mod2)
+lme.dscore(mod2, data = big_face2, type='lme4')
+
+####################### RT & Acc for male faces
+Mfacert = subset(rt_noout, stim_sex == 'Male')
+Mfaceac = subset(big_face2, stim_sex == 'Male')
+
+mod3 = lmer(rt ~ sub_sex + (1 | partno), data = Mfacert)
+summary(mod3)
+lme.dscore(mod3, data = Mfacert, type='lme4')
+
+mod4 = lmer(acc ~ sub_sex + (1 | partno), data = Mfaceac)
+summary(mod4)
+lme.dscore(mod4, data = Mfaceac, type='lme4')
+
+####################### RT & Acc for female faces
+Ffacert = subset(rt_noout, stim_sex == 'Female')
+Ffaceac = subset(big_face2, stim_sex == 'Female')
+
+mod5 = lmer(rt ~ sub_sex + (1 | partno), data = Ffacert)
+summary(mod5)
+lme.dscore(mod5, data = Ffacert, type='lme4')
+
+mod6 = lmer(acc ~ sub_sex + (1 | partno), data = Ffaceac)
+summary(mod6)
+lme.dscore(mod6, data = Ffaceac, type='lme4')
+
+
+
+################################################################# PLOTS for overall
+dodge = position_dodge(width = 0.8)
+
+r1 = ggplot(rt_noout, aes(sub_sex,y=rt, fill = sub_sex)) +
+  geom_violin(aes(fill=sub_sex,color=sub_sex),alpha=.8) +
+  geom_point(color="black", size=0.3, position = position_jitter(w=0.05),alpha=.04) +
+  geom_boxplot(width=.1, outlier.shape = NA)+
+  stat_summary(fun.y = mean, 
+               geom = "point", 
+               fill = "White", 
+               color = "Black") +
+  stat_summary(fun.data = mean_cl_normal,                
+               geom = "errorbar", 
+               position = position_dodge(width = 0.90),
+               width = 0.2) +
+  theme + theme(legend.position='none')+
+  xlab("Sex") +
+  ylab("Response Time (ms)") + coord_cartesian(ylim=c(0,9000)) +
+  scale_x_discrete(labels = c('Female','Male')) + 
+  scale_fill_manual(values=c('firebrick3','dodgerblue3')) +
+  scale_color_manual(values=c('firebrick3','dodgerblue3'))
+
+mean_acc = data.frame(cbind(as.numeric(names(with(big_face2, tapply(acc, list(partno),mean,na.rm=T)))),
+                            unname(with(big_face2, tapply(acc, list(partno),mean,na.rm=T)))))
+colnames(mean_acc) = c('partno','accuracy')
+tt = distinct(big_face2[,c('partno','sub_sex')])
+mean_acc2 = merge(mean_acc,tt,by='partno')
+
+
+a1 = ggplot(mean_acc2, aes(sub_sex,y=accuracy, fill = sub_sex)) +
+  geom_violin(aes(fill=sub_sex,color=sub_sex),alpha=.8) +
+  geom_point(color="black", size=0.3, position = position_jitter(w=0.05),alpha=.2) +
+  geom_boxplot(width=.1, outlier.shape = NA)+
+  stat_summary(fun.y = mean, 
+               geom = "point", 
+               fill = "White", 
+               color = "Black") +
+  stat_summary(fun.data = mean_cl_normal,                
+               geom = "errorbar", 
+               position = position_dodge(width = 0.90),
+               width = 0.2) +
+  theme + theme(legend.position='none')+
+  xlab("Sex") +
+  ylab("Accuracy") + coord_cartesian(ylim=c(0,1)) +
+  scale_x_discrete(labels = c('Female','Male')) + 
+  scale_fill_manual(values=c('firebrick3','dodgerblue3')) +
+  scale_color_manual(values=c('firebrick3','dodgerblue3'))
+
+plot_grid(r1,a1, ncol = 1)
+
+
+
+
+```
