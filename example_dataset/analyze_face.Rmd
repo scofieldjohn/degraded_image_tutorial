@@ -20,6 +20,7 @@ library(ggplot2)
 library(cowplot)
 library(dplyr)
 library(readxl)
+library(MOTE)
 theme = theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(), 
               panel.background = element_blank(), 
@@ -140,6 +141,66 @@ a1 = ggplot(mean_acc2, aes(sub_sex,y=accuracy, fill = sub_sex)) +
 
 plot_grid(r1,a1, ncol = 1)
 
+
+
+
+
+############# emotion * gender interaction
+modx = lmer(rt ~ sub_sex*emotion + (1 | partno), data = rt_noout)
+anova(modx)
+modxy = lmer(rt ~ sub_sex*race + (1 | partno), data = rt_noout)
+anova(modxy)
+
+mod2xy = lmer(acc ~ sub_sex*race + (1 | partno), data = big_face2)
+anova(mod2xy)
+
+
+mod2x = lmer(acc ~ sub_sex*emotion + (1 | partno), data = big_face2)
+anova(mod2x)
+
+
+
+#split on race
+angry = subset(big_face2, emotion == 'Angry')
+disgust = subset(big_face2, emotion == 'Disgust')
+fear = subset(big_face2, emotion == 'Fear')
+happy = subset(big_face2, emotion == 'Happy')
+neutral = subset(big_face2, emotion == 'Neutral')
+sad = subset(big_face2, emotion == 'Sad')
+surprise = subset(big_face2, emotion == 'Surprise')
+
+
+mod_angry = lmer(acc ~ sub_sex + (1 | partno), data = angry)
+summary(mod_angry)
+lme.dscore(mod_angry, data = angry, type='lme4')
+
+mod_disgust = lmer(acc ~ sub_sex + (1 | partno), data = disgust)
+summary(mod_disgust)
+lme.dscore(mod_disgust, data = disgust, type='lme4')
+
+mod_fear = lmer(acc ~ sub_sex + (1 | partno), data = fear)
+summary(mod_fear)
+lme.dscore(mod_fear, data = fear, type='lme4')
+
+mod_happy = lmer(acc ~ sub_sex + (1 | partno), data = happy)
+summary(mod_happy)
+lme.dscore(mod_happy, data = happy, type='lme4')
+
+mod_neutral = lmer(acc ~ sub_sex + (1 | partno), data = neutral)
+summary(mod_neutral)
+lme.dscore(mod_neutral, data = neutral, type='lme4')
+
+mod_sad = lmer(acc ~ sub_sex + (1 | partno), data = sad)
+summary(mod_sad)
+lme.dscore(mod_sad, data = sad, type='lme4')
+
+mod_surprise = lmer(acc ~ sub_sex + (1 | partno), data = surprise)
+summary(mod_surprise)
+lme.dscore(mod_surprise, data = surprise, type='lme4')
+
+
+p_values = c(0.05,0.000348,0.00157,0.351,3.2e-06,0.00579,0.454)
+p.adjust(p_values,method='bonferroni')
 
 
 
